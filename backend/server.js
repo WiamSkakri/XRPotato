@@ -155,6 +155,17 @@ app.get('/api/users', (req, res) => {
   });
 });
 
+// SAFE 404 handler - MUST be at the end after all other routes
+app.use((req, res) => {
+  console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({
+    success: false,
+    error: 'Route not found',
+    path: req.originalUrl,
+    method: req.method
+  });
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log('✅ ScholarLed Backend Server Started!');
