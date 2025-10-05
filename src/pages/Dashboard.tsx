@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,8 +39,13 @@ const{
     logout
   } = useAuth0();
 
+  console.log("User:", user);
+  console.log("Is Authenticated:", isAuthenticated);
+  console.log("Is Loading:", isLoading);
+
   const [papers, setPapers] = useState<Paper[]>([]);
   const [loading, setLoading] = useState(true);
+ 
 
   // Fetch papers from backend
   useEffect(() => {
@@ -51,6 +57,30 @@ const{
         }
         const data = await response.json();
         setPapers(data.papers || []);
+      } catch (error) {
+        toast({
+          title: "Error loading papers",
+          description: error instanceof Error ? error.message : "Please try again later",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPapers();
+  }, []);
+
+  // Fetch papers from backend
+  useEffect(() => {
+    const fetchPapers = async () => {
+      try {
+        const response = await fetch(`http://localhost:3001/api/dbuser/${user?.sub}`);
+        if (!response.ok) {
+          //throw new Error('Failed to fetch papers');
+        }
+        const data = await response.json();
+        console.log("exists", data);
       } catch (error) {
         toast({
           title: "Error loading papers",

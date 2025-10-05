@@ -7,6 +7,7 @@ const { sequelize, testConnection } = require('./src/config/database');
 const Paper = require('./src/models/Paper');
 const User = require('./src/models/User');
 const paperController = require('./src/controllers/paperController');
+const userController = require('./src/controllers/userController');
 const multer = require('multer');
 const app = express();
 const XRPService = require('./src/services/xrpService');
@@ -65,6 +66,55 @@ async function startServer(){
       });
     }
   });
+
+  app.get('/api/dbuser/:id', async (req, res) => {
+    try {
+      const userId = req.params.id;
+      // Query to check if user exists
+    const [results] = await sequelize.query(
+      'SELECT EXISTS(SELECT 1 FROM users WHERE auth0_id = :userId) as exists',
+      {
+        replacements: { userId: userId },
+        type: sequelize.QueryTypes.SELECT
+      }
+    );
+    if(!results.exists){
+      console.log("User does not exist, creating...");
+      await userController.createUser({auth0_id: userId});
+      const [resultt] = await sequelize.query(
+      'INSERT INTO users (id, auth0_id, email) VALUES (gen_random_uuid(), :auth0_id, :email) RETURNING id',
+      {
+        replacements: { auth0_id: userId,
+          email: userId + "@example.com"
+         },
+        type: sequelize.QueryTypes.INSERT
+      }
+    );
+    
+    res.json({
+      success: true,
+      userId: results[0].id,
+      message: 'User created'
+    });
+    }
+
+    res.json({
+      success: true,
+      exists: results.exists,
+      userId: userId,
+      message: results.exists ? 'User found' : 'User not found'
+    });
+    } catch (error) {
+      console.error('Database connection error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Database connection failed',
+        error: error.message
+      });
+    }
+  });
+
+ 
 
   // Paper routes - now using real database
   app.get('/api/papers', paperController.getPapers);
