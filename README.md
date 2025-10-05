@@ -1,237 +1,323 @@
-# XRPotato - Read-to-Earn Academic Publishing
+# XRPotato Deployment Guide
 
-Revolutionary academic publishing platform built on XRPL blockchain where authors earn from every read, reviewers get compensated fairly, and knowledge flows freely.
+Complete guide to deploy XRPotato to production with custom domain.
 
-## 🚀 What's Built (MVP Frontend)
+## Architecture
 
-This is the **frontend foundation** for the XRPotato hackathon project. The interface demonstrates the complete user journey and workflow visualization.
+- **Frontend**: Vercel (React/Vite app)
+- **Backend**: Render.com or Railway (Node.js/Express API)
+- **Database**: Supabase PostgreSQL
+- **Auth**: Auth0
+- **Blockchain**: XRPL Testnet
+- **Storage**: IPFS (Pinata/Web3.storage) + AWS S3
 
-### ✅ Completed Features
+## Prerequisites
 
-- **Landing Page**: Hero section explaining Read-to-Earn model with gradient design
-- **Authentication UI**: Dual auth flow (Auth0 + XUMM wallet connect)
-- **Author Dashboard**: Track papers, earnings, reads, and citations
-- **Paper Submission**: Upload interface with metadata forms and workflow steps
-- **Design System**: Blockchain-inspired colors (purple/blue gradients + orange accents)
-- **Responsive Design**: Mobile-first approach with Tailwind CSS
-- **Custom Button Variants**: Hero, wallet, and academic variants using design tokens
+- GitHub account with this repository pushed
+- Vercel account (free tier works)
+- Render.com or Railway account (free tier works)
+- Custom domain registered
+- Supabase project with tables created
+- Auth0 application configured
 
-### 🎨 Design Highlights
+## Step 1: Deploy Backend to Render.com
 
-- **Primary Colors**: Deep purple-blue gradients (#6366F1 → #8B5CF6)
-- **Accent**: Warm orange (#F59E0B - potato theme!)
-- **Semantic Tokens**: All colors use HSL CSS variables from design system
-- **Smooth Animations**: Glow effects, transitions, and hover states
-- **Professional + Modern**: Academic credibility meets Web3 innovation
+### 1.1 Create New Web Service
 
-## 🏗️ Architecture Overview
+1. Go to https://render.com/
+2. Click "New +" then "Web Service"
+3. Connect your GitHub repository
+4. Configure service:
+   - **Name**: xrpotato-api
+   - **Region**: Choose closest to your users
+   - **Branch**: main
+   - **Root Directory**: backend
+   - **Environment**: Node
+   - **Build Command**: `cd backend && npm install`
+   - **Start Command**: `cd backend && npm start`
 
-```
-Frontend (Current)           Backend (To Build)
-├─ Next.js 14 App           ├─ Node.js + Express
-├─ React + TypeScript       ├─ PostgreSQL + Prisma
-├─ Tailwind + shadcn/ui     ├─ XRPL.js (Testnet)
-├─ Zustand (state)          ├─ IPFS (Pinata/Web3.storage)
-└─ Auth0 + XUMM UI          ├─ AWS S3 Backup
-                            ├─ BullMQ (Redis) Jobs
-                            └─ Auth0 + XUMM SDK
-```
+### 1.2 Add Environment Variables
 
-## 🔗 Backend Integration Roadmap
-
-To complete the full dApp, implement these backend components:
-
-### 1. **Database Schema (Prisma + PostgreSQL)**
-```prisma
-model User {
-  id              String   @id @default(uuid())
-  email           String?  @unique
-  name            String
-  role            Role     @default(AUTHOR)
-  walletAddress   String?  @unique
-  authProvider    AuthProvider
-  reputationScore Int      @default(0)
-  papers          Paper[]
-  reviews         Review[]
-}
-
-model Paper {
-  id             String       @id @default(uuid())
-  title          String
-  abstract       String
-  keywords       String[]
-  pdfCid         String       // IPFS CID
-  s3Key          String       // S3 backup
-  status         PaperStatus  @default(DRAFT)
-  version        Int          @default(1)
-  contentHash    String       // SHA-256
-  nftTokenId     String?
-  nftIssuer      String?
-  finalCid       String?
-  doi            String?
-  ownerId        String
-  owner          User         @relation(fields: [ownerId], references: [id])
-  reviews        Review[]
-  paymentEvents  PaymentEvent[]
-  createdAt      DateTime     @default(now())
-}
-
-enum PaperStatus {
-  DRAFT
-  READY_FOR_REVIEW
-  UNDER_REVIEW
-  REVISION_REQUESTED
-  ACCEPTED
-  PUBLISHED
-}
-```
-
-### 2. **XRPL Integration (xrpl.js)**
-
-```typescript
-// Core XRPL operations needed:
-- mintNFT(paper: Paper): Promise<{ tokenId, issuer, txHash }>
-- sendMicropayment(from, to, drops): Promise<txHash>
-- createEscrow(reviewerWallet, amount, deadline): Promise<txHash>
-- splitReadRevenue(readerWallet, recipients, amounts): Promise<txHashes[]>
-```
-
-### 3. **IPFS + S3 Storage**
-
-```typescript
-// Storage pipeline:
-1. Upload PDF to S3 (backup)
-2. Push to IPFS via Pinata/Web3.storage
-3. Compute SHA-256 hash
-4. Store CID + S3 key + hash in database
-5. On publish: Create metadata JSON → IPFS → NFT URI
-```
-
-### 4. **API Endpoints**
-
-Key routes to implement:
+In Render dashboard, add these environment variables:
 
 ```
-POST   /api/papers              - Upload paper with PDF
-POST   /api/papers/:id/ready    - Mark ready for review
-POST   /api/agreements           - Create journal agreement (writes XRPL memo)
-POST   /api/reviews              - Submit review (writes XRPL memo)
-POST   /api/papers/:id/publish   - Mint NFT and publish
-POST   /api/papers/:id/read      - Trigger read micropayments
-GET    /api/analytics/:id        - Fetch paper analytics
-```
-
-### 5. **State Machine Workflow**
-
-Enforce transitions:
-```
-DRAFT → READY_FOR_REVIEW → UNDER_REVIEW → REVISION_REQUESTED → ACCEPTED → PUBLISHED
-```
-
-Block invalid transitions server-side with Zod validation.
-
-### 6. **Micropayment Revenue Split**
-
-On paper read:
-```typescript
-const defaultSplit = {
-  authors: 0.60,    // 60%
-  journal: 0.20,    // 20%
-  reviewers: 0.15,  // 15% (weighted by quality)
-  platform: 0.05    // 5%
-};
-
-// Execute as sequential XRPL Payment txs
-// Store all tx hashes in PaymentEvent record
-```
-
-## 🔐 Environment Variables Needed
-
-Create `.env` file:
-
-```bash
-# Auth
+NODE_ENV=production
+PORT=3001
+DATABASE_URL=postgresql://postgres.xxxxx:[PASSWORD]@xxx.pooler.supabase.com:6543/postgres
 AUTH0_DOMAIN=your-domain.auth0.com
-AUTH0_CLIENT_ID=your_client_id
-AUTH0_CLIENT_SECRET=your_secret
-AUTH0_AUDIENCE=https://xrpotato.com/api
-XUMM_API_KEY=your_xumm_key
-XUMM_API_SECRET=your_xumm_secret
-
-# XRPL
+AUTH0_AUDIENCE=https://xrpotato-api.com
 XRPL_NETWORK=testnet
 XRPL_JSONRPC=https://s.altnet.rippletest.net:51234/
-PLATFORM_HOT_WALLET_SEED=sXXXXXXXXX  # DEV ONLY - never commit!
-
-# Storage
-WEB3STORAGE_TOKEN=your_token
-# OR
-PINATA_JWT=your_jwt
-AWS_S3_BUCKET=xrpotato-papers
-AWS_ACCESS_KEY_ID=your_key
-AWS_SECRET_ACCESS_KEY=your_secret
-AWS_REGION=us-east-1
-
-# Database
-DATABASE_URL=postgresql://user:pass@localhost:5432/xrpotato
-REDIS_URL=redis://localhost:6379
 ```
 
-## 🚀 Running Locally
+Get your DATABASE_URL from Supabase:
+1. Go to Project Settings > Database
+2. Copy "Connection pooling" URI
+3. Replace [PASSWORD] with your database password
 
+### 1.3 Deploy
+
+Click "Create Web Service" and wait for deployment to complete. Note your backend URL (e.g., `https://xrpotato-api.onrender.com`)
+
+## Step 2: Deploy Frontend to Vercel
+
+### 2.1 Import Project
+
+1. Go to https://vercel.com/
+2. Click "Add New..." > "Project"
+3. Import your GitHub repository
+4. Configure project:
+   - **Framework Preset**: Vite
+   - **Root Directory**: ./
+   - **Build Command**: `npm run build`
+   - **Output Directory**: dist
+
+### 2.2 Add Environment Variables
+
+In Vercel project settings > Environment Variables, add:
+
+```
+VITE_AUTH0_DOMAIN=dev-gjkdribjyvsvb0kt.us.auth0.com
+VITE_AUTH0_CLIENT_ID=liIh5ipSzbndQPzF3eET5E0SSY36vTyq
+VITE_AUTH0_AUDIENCE=https://xrpotato-api.com
+VITE_API_URL=https://xrpotato-api.onrender.com
+```
+
+Replace `VITE_API_URL` with your actual Render backend URL.
+
+### 2.3 Deploy
+
+Click "Deploy" and wait for build to complete.
+
+## Step 3: Connect Custom Domain
+
+### 3.1 Add Domain in Vercel
+
+1. Go to your Vercel project > Settings > Domains
+2. Enter your domain (e.g., `xrpotato.com`)
+3. Click "Add"
+4. Vercel will show DNS records you need to configure
+
+### 3.2 Configure DNS Records
+
+Go to your domain registrar (GoDaddy, Namecheap, etc.) and add:
+
+**For root domain (xrpotato.com):**
+```
+Type: A
+Name: @
+Value: 76.76.21.21
+```
+
+**For www subdomain:**
+```
+Type: CNAME
+Name: www
+Value: cname.vercel-dns.com
+```
+
+DNS propagation takes 5-60 minutes.
+
+### 3.3 Enable HTTPS
+
+Vercel automatically provisions SSL certificates. Wait a few minutes after DNS propagation.
+
+## Step 4: Update Auth0 Configuration
+
+1. Go to Auth0 Dashboard > Applications > Your App
+2. Update these settings:
+
+**Allowed Callback URLs:**
+```
+https://xrpotato.com/callback,
+https://www.xrpotato.com/callback,
+http://localhost:8080/callback
+```
+
+**Allowed Logout URLs:**
+```
+https://xrpotato.com,
+https://www.xrpotato.com,
+http://localhost:8080
+```
+
+**Allowed Web Origins:**
+```
+https://xrpotato.com,
+https://www.xrpotato.com,
+http://localhost:8080
+```
+
+**Allowed Origins (CORS):**
+```
+https://xrpotato.com,
+https://www.xrpotato.com,
+http://localhost:8080
+```
+
+3. Save Changes
+
+## Step 5: Update Backend CORS
+
+Update `backend/server.js` to allow your production domain:
+
+```javascript
+app.use(cors({
+  origin: [
+    'http://localhost:8080',
+    'https://xrpotato.com',
+    'https://www.xrpotato.com'
+  ],
+  credentials: true
+}));
+```
+
+Commit and push changes. Render will auto-deploy.
+
+## Step 6: Test Deployment
+
+### 6.1 Health Check
+
+Test backend API:
 ```bash
-# Install dependencies
-npm install
-
-# Run development server
-npm run dev
-
-# Open browser
-open http://localhost:8080
+curl https://xrpotato-api.onrender.com/health
 ```
 
-## 📦 Tech Stack
+Should return: `{"status":"healthy"}`
 
-- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
-- **UI Components**: shadcn/ui, Radix UI
-- **State**: Zustand (when needed)
-- **Forms**: React Hook Form + Zod
-- **Icons**: Lucide React
-- **Routing**: React Router DOM
+### 6.2 Database Connection
 
-## 🎯 Next Steps for Full Implementation
+Test database:
+```bash
+curl https://xrpotato-api.onrender.com/api/test-db
+```
 
-1. **Enable Lovable Cloud** - Get instant backend infrastructure
-2. **Implement XRPL Integration** - Add xrpl.js package and testnet connection
-3. **Setup IPFS Storage** - Configure Pinata or Web3.storage
-4. **Build API Endpoints** - Create Express routes with Prisma
-5. **Add Auth0 + XUMM** - Complete authentication flows
-6. **Deploy to Testnet** - Fund test wallets and demo full flow
+Should return connection success message.
 
-## 📖 Key Resources
+### 6.3 Frontend
 
-- [XRPL.js Docs](https://js.xrpl.org/)
-- [XLS-20 NFT Standard](https://xrpl.org/nft-concepts.html)
-- [XUMM SDK](https://xumm.readme.io/)
-- [Auth0 React SDK](https://auth0.com/docs/quickstart/spa/react)
-- [Web3.storage](https://web3.storage/docs/)
+1. Visit `https://xrpotato.com`
+2. Test login with Auth0
+3. Try submitting a paper
+4. Check browser console for errors
 
-## 🏆 Hackathon Demo Flow
+## Step 7: Monitor Deployment
 
-1. **Author Login** → Dashboard showing mock papers
-2. **Submit Paper** → Upload PDF + metadata
-3. **View Status** → See "Under Review" state with workflow
-4. **Publish** → Mint NFT (demonstrate tx hash)
-5. **Read Event** → Trigger micropayment split
-6. **Analytics** → Show earnings and impact metrics
+### Backend Monitoring (Render)
 
-## 📝 Notes
+- View logs: Render Dashboard > Logs
+- Check metrics: CPU, memory usage
+- Set up alerts for downtime
 
-- All XRPL transactions currently show toast notifications with placeholder tx hashes
-- File uploads are simulated - backend will handle actual IPFS/S3 uploads
-- Revenue splits and NFT minting require backend integration
-- Testnet faucet: https://xrpl.org/xrp-testnet-faucet.html
+### Frontend Monitoring (Vercel)
 
----
+- Analytics: Vercel Dashboard > Analytics
+- Logs: Real-time function logs
+- Speed insights: Performance metrics
 
-**Built for XRPL Hackathon** • [Testnet Explorer](https://testnet.xrpl.org/) • [Project Demo](#)
+## Troubleshooting
+
+### "Network Error" when calling API
+
+**Problem**: Frontend cannot reach backend
+
+**Solutions**:
+1. Verify `VITE_API_URL` in Vercel matches Render URL
+2. Check backend CORS settings include production domain
+3. Ensure backend is running (check Render logs)
+4. Test API directly: `curl https://your-api.onrender.com/health`
+
+### Auth0 Login Fails
+
+**Problem**: Redirect loop or "callback not allowed"
+
+**Solutions**:
+1. Verify Auth0 callback URLs include exact production URLs
+2. Check `VITE_AUTH0_DOMAIN` and `VITE_AUTH0_CLIENT_ID` are correct
+3. Clear browser cache and cookies
+4. Check Auth0 dashboard logs for detailed error
+
+### Database Connection Timeout
+
+**Problem**: Backend cannot connect to Supabase
+
+**Solutions**:
+1. Verify `DATABASE_URL` in Render is correct
+2. Check Supabase project is not paused (free tier pauses after inactivity)
+3. Test connection pooling URL vs direct connection
+4. Check Supabase logs for connection attempts
+
+### CSS/Assets Not Loading
+
+**Problem**: 404 errors for static files
+
+**Solutions**:
+1. Verify build output directory is `dist`
+2. Check `vite.config.ts` base path
+3. Clear Vercel cache and rebuild
+4. Check browser network tab for failed requests
+
+### Backend Cold Starts (Render Free Tier)
+
+**Problem**: First request takes 30+ seconds
+
+**Solution**: Render free tier spins down after inactivity. Consider:
+1. Upgrading to paid tier for always-on instances
+2. Using a cron job to ping your API every 14 minutes
+3. Adding loading states in frontend for initial requests
+
+## Production Checklist
+
+Before announcing your app:
+
+- [ ] SSL certificate active (HTTPS working)
+- [ ] Custom domain configured and propagated
+- [ ] Auth0 production credentials configured
+- [ ] Database has proper indexes on frequently queried columns
+- [ ] Error tracking setup (Sentry recommended)
+- [ ] Backup strategy for database
+- [ ] API rate limiting configured
+- [ ] XRPL mainnet credentials ready (if launching with real XRP)
+- [ ] Terms of service and privacy policy pages created
+- [ ] Contact/support email configured
+- [ ] Performance tested with Lighthouse (score >90)
+- [ ] Security headers configured (Helmet.js)
+- [ ] CORS properly restricted to production domains only
+
+## Cost Estimate (Monthly)
+
+- **Vercel**: Free (Hobby tier, includes custom domain)
+- **Render**: Free tier available, $7/month for hobby tier (recommended)
+- **Supabase**: Free up to 500MB database, 1GB storage
+- **Auth0**: Free up to 7,000 active users
+- **Domain**: $10-15/year (one-time annual cost)
+
+**Total**: $0-7/month for development, ~$7-15/month for production with hobby tier
+
+## Scaling Considerations
+
+As your app grows:
+
+1. **Database**: Upgrade Supabase to Pro ($25/month) for 8GB + daily backups
+2. **Backend**: Scale to Render Standard ($25/month) for 2GB RAM + always-on
+3. **CDN**: Vercel Pro ($20/month) for improved edge caching
+4. **XRPL**: Move to mainnet with production credentials
+5. **Storage**: Upgrade IPFS pinning service for faster retrieval
+
+## Support Resources
+
+- **Render Docs**: https://render.com/docs
+- **Vercel Docs**: https://vercel.com/docs
+- **Supabase Docs**: https://supabase.com/docs
+- **XRPL Docs**: https://xrpl.org/docs
+- **Auth0 Docs**: https://auth0.com/docs
+
+## Next Steps After Deployment
+
+1. Set up analytics (PostHog, Plausible, or Google Analytics)
+2. Configure error monitoring (Sentry)
+3. Add status page (status.xrpotato.com)
+4. Set up automated backups for database
+5. Create documentation site for API endpoints
+6. Add uptime monitoring (UptimeRobot, Pingdom)
+7. Plan XRPL mainnet migration strategy
