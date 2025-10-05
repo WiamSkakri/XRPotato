@@ -76,7 +76,7 @@ const{
   useEffect(() => {
     const fetchPapers = async () => {
       try {
-        const response = await fetch(`http://localhost:3001/api/dbuser/${user?.sub}`);
+        const response = await fetch(`${API_URL}/api/dbuser/${user?.sub}`);
         if (!response.ok) {
           //throw new Error('Failed to fetch papers');
         }
