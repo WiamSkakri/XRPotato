@@ -1,1 +1,8 @@
 npm install @auth0/auth0-react
+
+npm install express cors helmet morgan dotenv
+npm install -D nodemon
+
+# Database & ORM
+npm install pg sequelize
+npm install bcryptjs jsonwebtoken
