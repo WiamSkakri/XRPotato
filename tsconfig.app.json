@@ -3,6 +3,8 @@
     "target": "ES2022",
     "lib": [
       "ES2023",
+      "DOM",
+      "DOM.Iterable"
     ],
     "module": "ESNext",
     "skipLibCheck": true,
@@ -17,7 +19,14 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    /* Path mapping */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./frontend/src/*"
+      ]
+    }
   },
   "include": [
     "vite.config.ts",
