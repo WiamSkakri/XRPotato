@@ -14,7 +14,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 const queryClient = new QueryClient();
 const App = () => {
 
-  const{
+  const {
     user,
     isAuthenticated,
     isLoading,
@@ -22,10 +22,12 @@ const App = () => {
     logout
   } = useAuth0();
 
-  const isT  = false;
-    if(!isAuthenticated){
-      return(
-        
+  // Temporarily bypass authentication for demo
+  const bypassAuth = true; // Set to false when Auth0 is configured
+
+  if (!isAuthenticated && !bypassAuth) {
+    return (
+
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />

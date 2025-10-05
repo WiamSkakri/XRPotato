@@ -254,23 +254,15 @@ https://xrpotato-frontend.onrender.com
 
 ## Step 5: Configure CORS in Backend
 
-Make sure your backend allows requests from your domain:
+✅ **Already configured!** Your backend is set to allow requests from:
+- `http://localhost:8080` and `http://localhost:3000` (local development)
+- `https://xrpotato-frontend.onrender.com` (Render URL)
+- `https://xrpotato.nyc` (custom domain)
+- `https://www.xrpotato.nyc` (www version)
 
-Add to `backend/server.js` (if not already there):
+If you need to add more domains, edit `backend/server.js` and update the `allowedOrigins` array.
 
-```javascript
-app.use(cors({
-  origin: [
-    'http://localhost:8080',
-    'https://xrpotato-frontend.onrender.com',
-    'https://yourdomain.com',  // Add your custom domain
-    'https://www.yourdomain.com'  // If using www
-  ],
-  credentials: true
-}));
-```
-
-Then redeploy backend:
+After making changes:
 1. Push changes to GitHub
 2. Render will auto-deploy
 

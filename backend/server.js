@@ -15,31 +15,34 @@ const XRPService = require('./src/services/xrpService');
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-async function startServer(){
+async function startServer() {
   await XRPService.initialize();
-  
+
   // CORS Configuration - Allow frontend domains
   const allowedOrigins = [
     'http://localhost:8080',
     'http://localhost:3000',
-    process.env.FRONTEND_URL, // Set this in Render
+    'https://xrpotato-frontend.onrender.com', // Render URL
+    'https://xrpotato.nyc', // Custom domain
+    'https://www.xrpotato.nyc', // www version if using
+    process.env.FRONTEND_URL, // Additional URL from env if needed
   ].filter(Boolean); // Remove undefined values
 
   app.use(cors({
     origin: function (origin, callback) {
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
-      
+
       if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
         callback(null, true);
       } else {
         console.warn(`CORS blocked request from origin: ${origin}`);
-        callback(null, true); // Allow all in production for now, restrict later
+        callback(new Error('Not allowed by CORS')); // Actually block unauthorized origins
       }
     },
     credentials: true
   }));
-  
+
   // Other Middleware
   app.use(express.json());
   app.use(helmet());
@@ -51,8 +54,8 @@ async function startServer(){
 
   // Health check
   app.get('/health', (req, res) => {
-    res.json({ 
-      status: 'OK', 
+    res.json({
+      status: 'OK',
       message: 'Server is running',
       timestamp: new Date().toISOString()
     });
@@ -60,7 +63,7 @@ async function startServer(){
 
   // API test
   app.get('/api/test', (req, res) => {
-    res.json({ 
+    res.json({
       message: 'API is working!',
       version: '1.0.0'
     });
@@ -71,7 +74,7 @@ async function startServer(){
     try {
       await sequelize.authenticate();
       const [results] = await sequelize.query('SELECT version();');
-      
+
       res.json({
         success: true,
         message: 'Database connection successful!',
@@ -91,7 +94,7 @@ async function startServer(){
   // Paper routes - now using real database
   app.get('/api/papers', paperController.getPapers);
   app.get('/api/papers/:id', paperController.getPaper);
- app.post('/api/papers', upload.single('file'), paperController.createPaper);
+  app.post('/api/papers', upload.single('file'), paperController.createPaper);
   app.put('/api/papers/:id', paperController.updatePaper);
   app.delete('/api/papers/:id', paperController.deletePaper);
 
@@ -120,7 +123,7 @@ async function startServer(){
     console.log(` API Test: http://localhost:${PORT}/api/test`);
     console.log(` DB Test: http://localhost:${PORT}/api/db-test`);
     console.log('');
-    
+
     // Test database connection on startup
     await testConnection();
   });
