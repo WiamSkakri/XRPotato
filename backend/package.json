@@ -19,8 +19,10 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.1",
+    "multer": "^2.0.2",
     "pg": "^8.16.3",
-    "sequelize": "^6.37.7"
+    "sequelize": "^6.37.7",
+    "xrpl": "^4.4.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

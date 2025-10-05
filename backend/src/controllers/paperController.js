@@ -1,6 +1,10 @@
 const Paper = require('../models/Paper');
 const User = require('../models/User');
 const { Op } = require('sequelize');
+const XRPService = require('../services/xrpService');
+const multer = require('multer');
+const upload = multer({dest: 'uploads/'}); // For parsing multipart/form-data
+
 
 // Get all papers with optional filtering
 const getPapers = async (req, res) => {
@@ -87,9 +91,13 @@ const getPaper = async (req, res) => {
 
 // Create new paper
 const createPaper = async (req, res) => {
+  console.log("Creating paper with data:");
   try {
-    const { title, abstract, content_hash, file_url, author_id } = req.body;
-
+    console.log("Creating paper with data:", req.body);
+    console.log("File data:", req.file);
+    const { title, abstract, content_hash, author } = req.body;
+    const file = req.file; // Assuming middleware like multer is used for file uploads
+    const crypto = require('crypto');
     // Validation
     if (!title || !abstract || !content_hash) {
       return res.status(400).json({
@@ -114,12 +122,14 @@ const createPaper = async (req, res) => {
       });
     }
 
+    //creat hash
+    const fileHash = crypto.createHash('sha256').update(file.buffer).digest('hex');
+
     const paper = await Paper.create({
       title: title.trim(),
       abstract: abstract.trim(),
-      content_hash,
-      file_url,
-      author_id,
+      content_hash: fileHash,
+
       status: 'draft'
     });
 
@@ -131,6 +141,31 @@ const createPaper = async (req, res) => {
         attributes: ['id', 'name', 'email', 'institution']
       }]
     });
+
+
+    console.log('Paper created with ID:', paper.id);
+    console.log('Minting process....');
+    try{
+        const nftResult = await XRPService.mintPaperNFT({
+          contentHash: fileHash,
+        //  authorWallet: await getAuthorWallet(req.user.sub),
+          paperMetadata: {
+            title,
+            authors: author,
+            institution: author//email.split('@')[1] // Extract domain
+          }
+        });
+    
+      // 2. Update paper with NFT info
+      await updatePaper(paper.id, {
+        nft_token_id: nftResult.tokenId,
+        nft_tx_hash: nftResult.txHash,
+        status: 'registered' // Now it's on blockchain!
+      });
+
+    }catch(blockchainError){
+      console.error('Blockchain minting error:', blockchainError);
+    }
 
     res.status(201).json({
       success: true,

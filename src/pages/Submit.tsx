@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { send } from "process";
 
 const Submit = () => {
   const [isUploading, setIsUploading] = useState(false);
@@ -37,10 +38,12 @@ const Submit = () => {
         return;
       }
       setFile(selectedFile);
+      console.log("Selected file:", selectedFile);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log("rip");
     e.preventDefault();
     
     if (!file) {
@@ -62,6 +65,7 @@ const Submit = () => {
     }
 
     setIsUploading(true);
+    console.log("ok thus");
 
     try {
       // Generate a simple hash from the file (in production, use proper SHA256)
@@ -70,18 +74,21 @@ const Submit = () => {
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const contentHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
+      const sendData = new FormData();
+      
+      sendData.append('title', formData.title);
+      sendData.append('abstract', formData.abstract);
+      sendData.append('content_hash', contentHash);
+      sendData.append('file', file);
+      sendData.append('author',"maria");
+      // Additional metadata can be appended as needed
       // Submit to backend API
+      console.log(sendData.get('file'));
+      console.log(sendData.get('title'));
       const response = await fetch('http://localhost:3001/api/papers', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: formData.title,
-          abstract: formData.abstract,
-          content_hash: contentHash,
-          file_url: `ipfs://pending/${file.name}`, // Placeholder until IPFS upload implemented
-        }),
+        
+        body: sendData
       });
 
       if (!response.ok) {

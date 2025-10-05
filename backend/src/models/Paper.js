@@ -11,6 +11,7 @@ const Paper = sequelize.define('Paper', {
     type: DataTypes.STRING, 
     allowNull: false 
   },
+
   abstract: DataTypes.TEXT,
   content_hash: { 
     type: DataTypes.STRING, 
