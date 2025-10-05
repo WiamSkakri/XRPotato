@@ -15,6 +15,7 @@ import {
   Wallet,
   Loader2
 } from "lucide-react";
+import { useAuth0 } from "@auth0/auth0-react";
 import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 
@@ -28,6 +29,15 @@ interface Paper {
 }
 
 const Dashboard = () => {
+//auth
+const{
+    user,
+    isAuthenticated,
+    isLoading,
+    loginWithRedirect,
+    logout
+  } = useAuth0();
+
   const [papers, setPapers] = useState<Paper[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -107,8 +117,10 @@ const Dashboard = () => {
                 <Wallet className="mr-2 w-4 h-4" />
                 rXXX...4a2b
               </Button>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/auth">Logout</Link>
+              <Button onClick={() => logout({ 
+                logoutParams: { returnTo: window.location.origin } 
+              })}>
+                Logout
               </Button>
             </div>
           </div>
