@@ -25,7 +25,7 @@ const App = () => {
   // Temporarily bypass authentication for demo
   const bypassAuth = true; // Set to false when Auth0 is configured
 
-  if (!isAuthenticated && !bypassAuth) {
+  if (!isAuthenticated) {
     return (
 
       <QueryClientProvider client={queryClient}>
