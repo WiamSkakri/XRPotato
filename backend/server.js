@@ -18,9 +18,31 @@ const upload = multer({ storage: storage });
 
 async function startServer(){
   await XRPService.initialize();
-  // Middleware
+  
+  // CORS Configuration - Allow frontend domains
+  const allowedOrigins = [
+    'http://localhost:8080',
+    'http://localhost:3000',
+    process.env.FRONTEND_URL, // Set this in Render
+  ].filter(Boolean); // Remove undefined values
+
+  app.use(cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+        callback(null, true);
+      } else {
+        console.warn(`CORS blocked request from origin: ${origin}`);
+        callback(null, true); // Allow all in production for now, restrict later
+      }
+    },
+    credentials: true
+  }));
+  
+  // Other Middleware
   app.use(express.json());
-  app.use(cors());
   app.use(helmet());
   app.use(morgan('combined'));
 

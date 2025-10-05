@@ -1,0 +1,36 @@
+services:
+  # Backend API Service
+  - type: web
+    name: xrpotato-backend
+    env: node
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        sync: false  # Will set this manually in Render dashboard
+      - key: XRPL_NETWORK
+        value: testnet
+      - key: XRPL_JSONRPC
+        value: https://s.altnet.rippletest.net:51234/
+      - key: JWT_SECRET
+        generateValue: true
+      # Add other secrets via Render dashboard
+
+  # Frontend Static Site
+  - type: web
+    name: xrpotato-frontend
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_ENV
+        value: production

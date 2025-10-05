@@ -19,6 +19,7 @@ import {
 import { useAuth0 } from "@auth0/auth0-react";
 import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { API_URL } from "@/config";
 
 interface Paper {
   id: string;
@@ -51,7 +52,7 @@ const{
   useEffect(() => {
     const fetchPapers = async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/papers');
+        const response = await fetch(`${API_URL}/api/papers`);
         if (!response.ok) {
           throw new Error('Failed to fetch papers');
         }
