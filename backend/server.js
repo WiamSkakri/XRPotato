@@ -12,21 +12,23 @@ app.use(cors());
 app.use(helmet());
 app.use(morgan('combined'));
 
-// SIMPLE TEST ROUTES ONLY
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'Server is running',
-    timestamp: new Date().toISOString()
-  });
-});
-
-app.get('/api/test', (req, res) => {
-  res.json({ 
-    message: 'API is working!',
-    version: '1.0.0'
-  });
-});
+// Mock user data
+const mockUsers = [
+  {
+    id: 1,
+    name: 'Dr. Maria Rodriguez',
+    email: 'maria@university.edu',
+    role: 'author',
+    wallet_address: 'rAuthor123...'
+  },
+  {
+    id: 2,
+    name: 'Prof. James Chen', 
+    email: 'james@research.org',
+    role: 'reviewer',
+    wallet_address: 'rReviewer456...'
+  }
+];
 
 const mockPapers = [
   {
@@ -46,6 +48,24 @@ const mockPapers = [
     created_at: new Date().toISOString()
   }
 ];
+
+// SIMPLE TEST ROUTES ONLY
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'Server is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    message: 'API is working!',
+    version: '1.0.0'
+  });
+});
+
+
 
 // GET all papers
 app.get('/api/papers', (req, res) => {
@@ -108,6 +128,30 @@ app.post('/api/papers', (req, res) => {
     success: true,
     message: 'Paper created successfully',
     paper: newPaper
+  });
+});
+
+
+
+// GET current user (mock - will integrate with Auth0 later)
+app.get('/api/users/me', (req, res) => {
+  console.log('👤 GET /api/users/me called');
+  
+  // For now, return the first user as mock
+  const user = mockUsers[0];
+  
+  res.json({
+    success: true,
+    user: user
+  });
+});
+
+// GET all users (for testing)
+app.get('/api/users', (req, res) => {
+  console.log('👥 GET /api/users called');
+  res.json({
+    success: true,
+    users: mockUsers
   });
 });
 
