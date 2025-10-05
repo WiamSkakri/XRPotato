@@ -1,17 +1,46 @@
-// models/Paper.js
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
+
 const Paper = sequelize.define('Paper', {
-  title: { type: DataTypes.STRING, allowNull: false },
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
+  },
+  title: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
   abstract: DataTypes.TEXT,
-  content_hash: { type: DataTypes.STRING, allowNull: false }, // For blockchain verification
-  ipfs_cid: DataTypes.STRING, // IPFS content identifier
-  file_url: DataTypes.STRING, // S3 or storage URL
+  content_hash: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  ipfs_cid: DataTypes.STRING,
+  file_url: DataTypes.STRING,
   status: {
     type: DataTypes.ENUM(
-      'draft', 'submitted', 'under_review', 
+      'draft', 'submitted', 'under_review',
       'revision_requested', 'accepted', 'published', 'rejected'
     ),
     defaultValue: 'draft'
   },
-  nft_token_id: DataTypes.STRING, // XRP Ledger NFT ID
-  publication_date: DataTypes.DATE
+  nft_token_id: DataTypes.STRING,
+  publication_date: DataTypes.DATE,
+  author_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
+  }
+}, {
+  tableName: 'papers',
+  timestamps: true,
+  underscored: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at'
 });
+
+module.exports = Paper;
