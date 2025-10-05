@@ -132,6 +132,7 @@ const createPaper = async (req, res) => {
 
       status: 'draft'
     });
+  console.log("paper created:", paper);
 
     // Fetch the created paper with author details
     const createdPaper = await Paper.findByPk(paper.id, {
@@ -157,20 +158,23 @@ const createPaper = async (req, res) => {
         });
     
       // 2. Update paper with NFT info
-      await updatePaper(paper.id, {
+      await updatePaperFunc(paper.id, {
         nft_token_id: nftResult.tokenId,
         nft_tx_hash: nftResult.txHash,
-        status: 'registered' // Now it's on blockchain!
+        status: 'submitted' 
       });
 
     }catch(blockchainError){
       console.error('Blockchain minting error:', blockchainError);
     }
 
+    const finalp = await Paper.findByPk(paper.id);
+    console.log("Final paper data:", finalp);
+
     res.status(201).json({
       success: true,
       message: 'Paper created successfully',
-      paper: createdPaper
+      paper: await Paper.findByPk(paper.id)
     });
   } catch (error) {
     console.error('Error creating paper:', error);
@@ -182,11 +186,31 @@ const createPaper = async (req, res) => {
   }
 };
 
+async function updatePaperFunc(id, updateData) {
+
+  const paper = await Paper.findByPk(id);
+  if (!paper) {
+    throw new Error('Paper not found');
+  }
+  console.log("Updating paper:", id, updateData);
+
+  // Update only provided fields
+  if (updateData.title) paper.title = updateData.title.trim();
+  if (updateData.abstract) paper.abstract = updateData.abstract.trim();
+  if (updateData.status) paper.status = updateData.status;
+  if (updateData.file_url) paper.file_url = updateData.file_url;
+  if (updateData.ipfs_cid) paper.ipfs_cid = updateData.ipfs_cid;
+  if (updateData.nft_token_id) paper.nft_token_id = updateData.nft_token_id;
+  if (updateData.nft_tx_hash) paper.nft_tx_hash = updateData.nft_tx_hash;
+
+  await paper.save();
+}
+
 // Update paper
 const updatePaper = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, abstract, status, file_url, ipfs_cid } = req.body;
+    const {nft_token_id, nft_tx_hash, status} = req.body;
 
     const paper = await Paper.findByPk(id);
 
