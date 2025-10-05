@@ -7,25 +7,25 @@ const User = sequelize.define('User', {
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true
   },
-  auth0_id: {
-    type: DataTypes.STRING,
-    unique: true
+  auth0_id: { 
+    type: DataTypes.STRING, 
+    unique: true 
   },
-  email: {
-    type: DataTypes.STRING,
+  email: { 
+    type: DataTypes.STRING, 
     unique: true,
     allowNull: false
   },
   name: DataTypes.STRING,
   wallet_address: DataTypes.STRING,
-  role: {
+  role: { 
     type: DataTypes.ENUM('reader', 'author', 'reviewer', 'editor', 'admin'),
     defaultValue: 'reader'
   },
   institution: DataTypes.STRING,
-  reputation_score: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0
+  reputation_score: { 
+    type: DataTypes.INTEGER, 
+    defaultValue: 0 
   }
 }, {
   tableName: 'users',

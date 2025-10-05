@@ -3,53 +3,24 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const { sequelize, testConnection } = require('./src/config/database');
+const Paper = require('./src/models/Paper');
+const User = require('./src/models/User');
+const paperController = require('./src/controllers/paperController');
 
 const app = express();
 
-// Basic middleware only
+// Middleware
 app.use(express.json());
 app.use(cors());
 app.use(helmet());
 app.use(morgan('combined'));
 
-// Mock user data
-const mockUsers = [
-  {
-    id: 1,
-    name: 'Dr. Maria Rodriguez',
-    email: 'maria@university.edu',
-    role: 'author',
-    wallet_address: 'rAuthor123...'
-  },
-  {
-    id: 2,
-    name: 'Prof. James Chen', 
-    email: 'james@research.org',
-    role: 'reviewer',
-    wallet_address: 'rReviewer456...'
-  }
-];
+// Setup model associations
+User.hasMany(Paper, { foreignKey: 'author_id', as: 'papers' });
+Paper.belongsTo(User, { foreignKey: 'author_id', as: 'author' });
 
-const mockPapers = [
-  {
-    id: 1,
-    title: 'Quantum Computing Basics',
-    author: 'Dr. Maria Rodriguez', 
-    status: 'published',
-    abstract: 'Introduction to quantum computing principles...',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 2, 
-    title: 'Blockchain in Academic Publishing',
-    author: 'Prof. James Chen',
-    status: 'under_review',
-    abstract: 'Exploring blockchain applications in scholarly communication...',
-    created_at: new Date().toISOString()
-  }
-];
-
-// SIMPLE TEST ROUTES ONLY
+// Health check
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -58,6 +29,7 @@ app.get('/health', (req, res) => {
   });
 });
 
+// API test
 app.get('/api/test', (req, res) => {
   res.json({ 
     message: 'API is working!',
@@ -65,111 +37,61 @@ app.get('/api/test', (req, res) => {
   });
 });
 
-
-
-// GET all papers
-app.get('/api/papers', (req, res) => {
-  console.log('📚 GET /api/papers called');
-  res.json({
-    success: true,
-    papers: mockPapers,
-    count: mockPapers.length
-  });
-});
-
-// GET single paper by ID
-app.get('/api/papers/:id', (req, res) => {
-  const paperId = parseInt(req.params.id);
-  console.log(`📄 GET /api/papers/${paperId} called`);
-  
-  const paper = mockPapers.find(p => p.id === paperId);
-  
-  if (!paper) {
-    return res.status(404).json({
+// Database connection test
+app.get('/api/db-test', async (req, res) => {
+  try {
+    await sequelize.authenticate();
+    const [results] = await sequelize.query('SELECT version();');
+    
+    res.json({
+      success: true,
+      message: 'Database connection successful!',
+      database: 'PostgreSQL (Supabase)',
+      version: results[0].version
+    });
+  } catch (error) {
+    console.error('Database connection error:', error);
+    res.status(500).json({
       success: false,
-      error: 'Paper not found'
+      message: 'Database connection failed',
+      error: error.message
     });
   }
-  
-  res.json({
-    success: true,
-    paper: paper
-  });
 });
 
-// POST create new paper
-app.post('/api/papers', (req, res) => {
-  console.log('📝 POST /api/papers called');
-  console.log('Request body:', req.body);
-  
-  const { title, abstract, author } = req.body;
-  
-  // Basic validation
-  if (!title || !abstract) {
-    return res.status(400).json({
-      success: false,
-      error: 'Title and abstract are required'
-    });
-  }
-  
-  // Create new paper
-  const newPaper = {
-    id: mockPapers.length + 1,
-    title,
-    abstract, 
-    author: author || 'Anonymous',
-    status: 'draft',
-    created_at: new Date().toISOString()
-  };
-  
-  mockPapers.push(newPaper);
-  
-  res.status(201).json({
-    success: true,
-    message: 'Paper created successfully',
-    paper: newPaper
-  });
-});
+// Paper routes - now using real database
+app.get('/api/papers', paperController.getPapers);
+app.get('/api/papers/:id', paperController.getPaper);
+app.post('/api/papers', paperController.createPaper);
+app.put('/api/papers/:id', paperController.updatePaper);
+app.delete('/api/papers/:id', paperController.deletePaper);
 
-
-
-// GET current user (mock - will integrate with Auth0 later)
+// User routes (mock for now)
 app.get('/api/users/me', (req, res) => {
   console.log('👤 GET /api/users/me called');
-  
-  // For now, return the first user as mock
-  const user = mockUsers[0];
-  
   res.json({
     success: true,
-    user: user
-  });
-});
-
-// GET all users (for testing)
-app.get('/api/users', (req, res) => {
-  console.log('👥 GET /api/users called');
-  res.json({
-    success: true,
-    users: mockUsers
-  });
-});
-
-// SAFE 404 handler - MUST be at the end after all other routes
-app.use((req, res) => {
-  console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
-  res.status(404).json({
-    success: false,
-    error: 'Route not found',
-    path: req.originalUrl,
-    method: req.method
+    user: {
+      id: '123e4567-e89b-12d3-a456-426614174000',
+      name: 'Dr. Maria Rodriguez',
+      email: 'maria@university.edu',
+      role: 'author',
+      wallet_address: 'rAuthor123...'
+    }
   });
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+
+// Start server and test database connection
+app.listen(PORT, async () => {
   console.log('✅ ScholarLed Backend Server Started!');
   console.log(` Port: ${PORT}`);
   console.log(` Health: http://localhost:${PORT}/health`);
   console.log(` API Test: http://localhost:${PORT}/api/test`);
+  console.log(` DB Test: http://localhost:${PORT}/api/db-test`);
+  console.log('');
+  
+  // Test database connection on startup
+  await testConnection();
 });

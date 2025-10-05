@@ -63,21 +63,52 @@ const Submit = () => {
 
     setIsUploading(true);
 
-    // Simulate upload process
-    setTimeout(() => {
+    try {
+      // Generate a simple hash from the file (in production, use proper SHA256)
+      const arrayBuffer = await file.arrayBuffer();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const contentHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      // Submit to backend API
+      const response = await fetch('http://localhost:3001/api/papers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          abstract: formData.abstract,
+          content_hash: contentHash,
+          file_url: `ipfs://pending/${file.name}`, // Placeholder until IPFS upload implemented
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit paper');
+      }
+
+      const data = await response.json();
+      
       setIsUploading(false);
       toast({
         title: "Paper submitted successfully! 🎉",
-        description: "Your paper will be uploaded to IPFS and S3. Processing will begin shortly.",
+        description: "Your paper has been saved. IPFS upload will be implemented soon.",
       });
       
-      // TODO: Implement actual IPFS upload and backend API call
-      console.log("Would upload:", {
-        file,
-        ...formData,
-        hash: "SHA256..." // Would compute actual hash
+      // Reset form
+      setFile(null);
+      setFormData({ title: "", abstract: "", keywords: "", coAuthors: "" });
+      
+      console.log("Paper created:", data.paper);
+    } catch (error) {
+      setIsUploading(false);
+      toast({
+        title: "Submission failed",
+        description: error instanceof Error ? error.message : "Please try again later",
+        variant: "destructive"
       });
-    }, 2000);
+    }
   };
 
   return (

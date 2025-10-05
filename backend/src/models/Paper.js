@@ -7,20 +7,20 @@ const Paper = sequelize.define('Paper', {
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true
   },
-  title: {
-    type: DataTypes.STRING,
-    allowNull: false
+  title: { 
+    type: DataTypes.STRING, 
+    allowNull: false 
   },
   abstract: DataTypes.TEXT,
-  content_hash: {
-    type: DataTypes.STRING,
-    allowNull: false
+  content_hash: { 
+    type: DataTypes.STRING, 
+    allowNull: false 
   },
   ipfs_cid: DataTypes.STRING,
   file_url: DataTypes.STRING,
   status: {
     type: DataTypes.ENUM(
-      'draft', 'submitted', 'under_review',
+      'draft', 'submitted', 'under_review', 
       'revision_requested', 'accepted', 'published', 'rejected'
     ),
     defaultValue: 'draft'
