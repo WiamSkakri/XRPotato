@@ -85,7 +85,7 @@ const Submit = () => {
       // Submit to backend API
       console.log(sendData.get('file'));
       console.log(sendData.get('title'));
-      const response = await fetch('http://localhost:3001/api/papers', {
+      const response = await fetch(`${API_URL}/api/papers`, {
         method: 'POST',
         
         body: sendData
